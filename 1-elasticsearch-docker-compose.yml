@@ -1,0 +1,39 @@
+version: "3.3"
+
+services:
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.2.4
+    hostname: "{{.Node.Hostname}}-elasticsearch"
+    environment:
+      - discovery.zen.ping.unicast.hosts=elasticsearch
+      - discovery.zen.minimum_master_nodes=1
+      - ELASTIC_PASSWORD=changeme
+      - cluster.name=es-cluster
+      - node.name={{.Node.Hostname}}-elasticsearch
+      - network.host=0.0.0.0
+      - xpack.ml.enabled=false
+      - xpack.security.enabled=false
+      - xpack.monitoring.enabled=true
+      - xpack.watcher.enabled=false
+      - xpack.license.self_generated.type=basic
+    networks:
+      - network-logging 
+    volumes:
+      - elasticsearch:/usr/share/elasticsearch/data
+    deploy:
+      mode: 'global'
+      endpoint_mode: dnsrr
+      labels:
+        - com.df.notify=true
+        - com.df.distribute=true
+        - com.df.servicePath=/
+        - com.df.port=9200
+        - com.df.srcPort=9200
+
+networks:
+    network-logging :
+      external: true
+
+volumes:
+  elasticsearch:

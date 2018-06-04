@@ -1,0 +1,37 @@
+version: "3.3"
+
+services:
+
+  metricbeat:
+    image: docker.elastic.co/beats/metricbeat:6.2.4
+    hostname: "{{.Node.Hostname}}-metricbeat"
+    user: root
+    networks:
+      - network-logging
+    configs:
+      - source: mb_config
+        target: /usr/share/metricbeat/metricbeat.yml
+    volumes:
+      - /proc:/hostfs/proc:ro
+      - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
+      - /:/hostfs:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - metricbeat:/usr/share/metricbeat/data
+    environment:
+      - ELASTICSEARCH_HOST=elasticsearh
+      - KIBANA_HOST=kibana
+    # disable strict permission checks
+#    command: ["--strict.perms=false", "-system.hostfs=/hostfs"]
+    deploy:
+      mode: global
+
+networks:
+  network-logging:
+    external: true
+
+volumes:
+  metricbeat:
+
+configs:
+  mb_config:
+    file: $PWD/elk/beats/metricbeat/config/metricbeat.yml

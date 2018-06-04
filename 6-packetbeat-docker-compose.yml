@@ -1,0 +1,33 @@
+version: "3.3"
+
+services:
+
+  packetbeat:
+    image: docker.elastic.co/beats/packetbeat:6.2.4
+    hostname: "{{.Node.Hostname}}-packetbeat"
+    user: root
+    networks:
+      - network-logging
+    configs:
+      - source: pb_config
+        target: /usr/share/packetbeat/packetbeat.yml
+    volumes:
+      - packetbeat:/usr/share/packetbeat/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - ELASTICSEARCH_HOST=elasticsearh
+      - KIBANA_HOST=kibana
+#    command: ["--strict.perms=false"]
+    deploy:
+      mode: global
+
+networks:
+  network-logging:
+    external: true
+
+volumes:
+  packetbeat:
+
+configs:
+  pb_config:
+    file: $PWD/elk/beats/packetbeat/config/packetbeat.yml

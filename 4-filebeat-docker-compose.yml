@@ -1,0 +1,38 @@
+version: "3.3"
+
+services:
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:6.2.4
+    hostname: "{{.Node.Hostname}}-filebeat"
+    user: root
+    networks:
+      - network-logging
+    configs:
+      - source: fb_config
+        target: /usr/share/filebeat/filebeat.yml
+    volumes:
+      - filebeat:/usr/share/filebeat/data
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/containers/:/var/lib/docker/containers/:ro
+
+    environment:
+#      - ELASTICSEARCH_HOST=${ELASTICSEARCH_HOST:-node1}
+#      - KIBANA_HOST=${KIBANA_HOST:-node1}
+      - ELASTICSEARCH_HOST=elasticsearch
+      - KIBANA_HOST=kibana
+    # disable strict permission checks
+#    command: ["--strict.perms=false"]
+    deploy:
+      mode: global
+
+networks:
+  network-logging:
+    external: true
+
+volumes:
+  filebeat:
+
+configs:
+  fb_config:
+    file: $PWD/elk/beats/filebeat/config/filebeat.yml

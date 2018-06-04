@@ -1,0 +1,80 @@
+version: "3.3"
+
+services:
+
+  cerebro:
+    image: yannart/cerebro
+    ports:
+      - "9000:9000"
+    deploy:
+      restart_policy:
+        condition: any
+      mode: replicated
+      replicas: 1
+    networks:
+      - network-logging
+
+  swarm-listener:
+    image: vfarcic/docker-flow-swarm-listener
+    hostname: swarm-listener
+    networks:
+      - network-logging 
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    environment:
+      - DF_NOTIFY_CREATE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/reconfigure
+      - DF_NOTIFY_REMOVE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/remove
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+
+
+  proxy:
+    image: vfarcic/docker-flow-proxy
+    hostname: proxy
+    ports:
+      - "800:80"
+      - "8443:443"
+      - "9200:9200"
+      - "5601:5601"
+    networks:
+      - network-logging 
+    environment:
+      - LISTENER_ADDRESS=swarm-listener
+      - MODE=swarm
+      - BIND_PORTS=9200,5601
+    deploy:
+      placement:
+        constraints:
+          - node.role == worker
+
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:6.2.4
+    hostname: "{{.Node.Hostname}}-logstash"
+    environment:
+      - XPACK_MONITORING_ELASTICSEARCH_URL=http://elasticsearch:9200
+#      - XPACK_MONITORING_ELASTICSEARCH_USERNAME=elastic
+#      - XPACK_MONITORING_ELASTICSEARCH_PASSWORD=changeme
+    ports:
+      - "12201:12201/udp"
+    networks:
+      - network-logging 
+    configs:
+      - source: ls_config
+        target: /usr/share/logstash/pipeline/logstash.conf
+    deploy:
+      placement:
+        constraints:
+          - node.role == worker
+
+
+networks:
+    network-logging:
+      external: true
+
+
+configs:
+  ls_config:
+    file: $PWD/elk/logstash/config/pipeline/logstash.conf
